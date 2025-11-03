@@ -1,0 +1,36 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Donkey GTA Icon -->
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4682B4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" fill="url(#skyGradient)"/>
+
+  <!-- City silhouette -->
+  <rect x="10" y="60" width="15" height="50" fill="#2C3E50"/>
+  <rect x="30" y="45" width="20" height="65" fill="#34495E"/>
+  <rect x="55" y="55" width="18" height="55" fill="#2C3E50"/>
+  <rect x="78" y="40" width="22" height="70" fill="#34495E"/>
+  <rect x="105" y="50" width="15" height="60" fill="#2C3E50"/>
+
+  <!-- Donkey silhouette (simple) -->
+  <ellipse cx="64" cy="70" rx="18" ry="12" fill="#8B4513"/>
+  <circle cx="55" cy="68" r="8" fill="#A0522D"/>
+  <rect x="70" y="76" width="4" height="12" fill="#8B4513"/>
+  <rect x="58" y="76" width="4" height="12" fill="#8B4513"/>
+
+  <!-- Ears -->
+  <ellipse cx="52" cy="62" rx="3" ry="6" fill="#A0522D"/>
+  <ellipse cx="58" cy="62" rx="3" ry="6" fill="#A0522D"/>
+
+  <!-- Star (action indicator) -->
+  <polygon points="100,25 105,35 115,35 107,42 110,52 100,45 90,52 93,42 85,35 95,35" fill="#FFD700" opacity="0.8"/>
+
+  <!-- Title text -->
+  <text x="64" y="118" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#FFFFFF" stroke="#000000" stroke-width="2">DONKEY</text>
+  <text x="64" y="118" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#FFD700">DONKEY</text>
+</svg>

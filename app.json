@@ -1,0 +1,43 @@
+{
+  "name": "DonkeyGTA",
+  "displayName": "Donkey GTA",
+  "version": "1.0.0",
+  "description": "GTA-style game where you ride a donkey and kick people for points",
+  "author": "Your Name",
+  "license": "MIT",
+  "expo": {
+    "name": "Donkey GTA",
+    "slug": "donkey-gta",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./godot/icon.svg",
+    "splash": {
+      "image": "./godot/icon.svg",
+      "resizeMode": "contain",
+      "backgroundColor": "#87CEEB"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.donkeygta",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "UIRequiresFullScreen": true,
+        "UIStatusBarHidden": true
+      }
+    },
+    "android": {
+      "package": "com.yourcompany.donkeygta",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./godot/icon.svg",
+        "backgroundColor": "#87CEEB"
+      },
+      "permissions": [
+        "VIBRATE"
+      ]
+    }
+  }
+}
