@@ -107,19 +107,12 @@ func generate_building(position: Vector3) -> void:
 	var depth = randf_range(block_size * 0.3, block_size * 0.8)
 	var height = randf_range(building_min_height, building_max_height)
 
-	# Create building mesh
-	var mesh_instance = MeshInstance3D.new()
-	var box_mesh = BoxMesh.new()
-	box_mesh.size = Vector3(width, height, depth)
-	mesh_instance.mesh = box_mesh
-	mesh_instance.position = Vector3(0, height / 2, 0)
-
 	# Random building color
-	var material = StandardMaterial3D.new()
-	material.albedo_color = building_colors[randi() % building_colors.size()]
-	material.metallic = 0.2
-	material.roughness = 0.8
-	mesh_instance.material_override = material
+	var color = building_colors[randi() % building_colors.size()]
+
+	# Create building using procedural asset system
+	var procedural_assets = load("res://scripts/ProceduralAssets.gd")
+	var building_model = procedural_assets.create_building_model(width, height, depth, color)
 
 	# Add collision
 	var collision_shape = CollisionShape3D.new()
@@ -128,44 +121,15 @@ func generate_building(position: Vector3) -> void:
 	collision_shape.shape = shape
 	collision_shape.position = Vector3(0, height / 2, 0)
 
-	building.add_child(mesh_instance)
+	building.add_child(building_model)
 	building.add_child(collision_shape)
-
-	# Add windows (detail)
-	add_building_windows(building, width, height, depth)
 
 	buildings_parent.add_child(building)
 
+# Windows are now created in ProceduralAssets.create_building_model()
+# This function is no longer needed but kept for compatibility
 func add_building_windows(building: Node3D, width: float, height: float, depth: float) -> void:
-	"""Add window details to buildings"""
-	var window_material = StandardMaterial3D.new()
-	window_material.albedo_color = Color(0.3, 0.4, 0.6, 0.8)
-	window_material.emission_enabled = true
-	window_material.emission = Color(1.0, 0.95, 0.8)
-	window_material.emission_energy = 0.3
-
-	var window_size = 1.5
-	var window_spacing = 3.0
-
-	# Add windows on front and back
-	for side in [-1, 1]:
-		var x_offset = side * (width / 2 + 0.05)
-
-		for y in range(int(height / window_spacing)):
-			for z in range(int(depth / window_spacing)):
-				var window = MeshInstance3D.new()
-				var window_mesh = BoxMesh.new()
-				window_mesh.size = Vector3(0.1, window_size, window_size)
-				window.mesh = window_mesh
-				window.material_override = window_material
-
-				window.position = Vector3(
-					x_offset,
-					y * window_spacing + window_spacing,
-					(z - depth / window_spacing / 2) * window_spacing
-				)
-
-				building.add_child(window)
+	pass  # Now handled by ProceduralAssets
 
 func generate_street(position: Vector3) -> void:
 	"""Generate street segments"""
@@ -200,26 +164,9 @@ func generate_props() -> void:
 		create_lamppost(prop_pos)
 
 func create_lamppost(position: Vector3) -> void:
-	"""Create a simple lamppost"""
-	var lamppost = MeshInstance3D.new()
-	var cylinder_mesh = CylinderMesh.new()
-	cylinder_mesh.height = 5.0
-	cylinder_mesh.top_radius = 0.1
-	cylinder_mesh.bottom_radius = 0.15
-
-	lamppost.mesh = cylinder_mesh
-	lamppost.position = position + Vector3(0, 2.5, 0)
-
-	var material = StandardMaterial3D.new()
-	material.albedo_color = Color(0.3, 0.3, 0.3)
-	lamppost.material_override = material
-
-	# Add light
-	var light = OmniLight3D.new()
-	light.position = Vector3(0, 2.0, 0)
-	light.light_energy = 0.5
-	light.light_color = Color(1.0, 0.95, 0.8)
-	light.omni_range = 10.0
-	lamppost.add_child(light)
+	"""Create a lamppost using procedural model"""
+	var procedural_assets = load("res://scripts/ProceduralAssets.gd")
+	var lamppost = procedural_assets.create_lamppost_model()
+	lamppost.position = position
 
 	props_parent.add_child(lamppost)

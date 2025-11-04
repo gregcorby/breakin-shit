@@ -75,7 +75,7 @@ func spawn_npc() -> void:
 		npc.died.connect(_on_npc_died.bind(npc))
 
 func create_npc_instance() -> Node3D:
-	"""Create an NPC with a simple mesh (placeholder until we have proper models)"""
+	"""Create an NPC with procedural pedestrian model"""
 	var npc = CharacterBody3D.new()
 
 	# Add the NPC script
@@ -83,17 +83,7 @@ func create_npc_instance() -> Node3D:
 	if script:
 		npc.set_script(script)
 
-	# Create simple capsule mesh for NPC
-	var mesh_instance = MeshInstance3D.new()
-	var capsule_mesh = CapsuleMesh.new()
-	capsule_mesh.height = 1.8
-	capsule_mesh.radius = 0.3
-	mesh_instance.mesh = capsule_mesh
-	mesh_instance.position = Vector3(0, 0.9, 0)
-	mesh_instance.name = "Mesh"
-
 	# Random color for variety
-	var material = StandardMaterial3D.new()
 	var colors = [
 		Color(0.8, 0.2, 0.2),  # Red
 		Color(0.2, 0.8, 0.2),  # Green
@@ -102,8 +92,12 @@ func create_npc_instance() -> Node3D:
 		Color(0.8, 0.2, 0.8),  # Magenta
 		Color(0.2, 0.8, 0.8),  # Cyan
 	]
-	material.albedo_color = colors[randi() % colors.size()]
-	mesh_instance.material_override = material
+	var color = colors[randi() % colors.size()]
+
+	# Create pedestrian model using procedural assets
+	var procedural_assets = load("res://scripts/ProceduralAssets.gd")
+	var mesh_instance = procedural_assets.create_pedestrian_model(color)
+	mesh_instance.name = "Mesh"
 
 	npc.add_child(mesh_instance)
 

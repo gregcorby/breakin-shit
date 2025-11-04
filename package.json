@@ -10,6 +10,7 @@
     "test": "jest",
     "lint": "eslint .",
     "download-prebuilt": "node scripts/download-prebuilt.js",
+    "download-assets": "node scripts/download-assets.js",
     "export-godot-android": "cd godot && ./export_game.sh android",
     "export-godot-ios": "cd godot && ./export_game.sh ios"
   },
