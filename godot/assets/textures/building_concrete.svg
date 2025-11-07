@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <!-- Concrete texture -->
+  <rect width="512" height="512" fill="#B8B8B8"/>
+  <!-- Add some noise/variation -->
+  <rect x="50" y="50" width="20" height="20" fill="#AAAAAA" opacity="0.3"/>
+  <rect x="200" y="100" width="30" height="30" fill="#C0C0C0" opacity="0.3"/>
+  <rect x="350" y="200" width="25" height="25" fill="#AAAAAA" opacity="0.3"/>
+  <rect x="100" y="300" width="15" height="15" fill="#C0C0C0" opacity="0.3"/>
+  <rect x="400" y="400" width="20" height="20" fill="#AAAAAA" opacity="0.3"/>
+</svg>

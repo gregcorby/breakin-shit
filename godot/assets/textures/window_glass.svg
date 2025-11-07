@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <!-- Glass window texture -->
+  <defs>
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90B8;stop-opacity:0.7" />
+      <stop offset="50%" style="stop-color:#6AB0D8;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#4A90B8;stop-opacity:0.7" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#glassGrad)"/>
+  <!-- Window frames -->
+  <rect x="0" y="250" width="512" height="12" fill="#2C3E50" opacity="0.8"/>
+  <rect x="250" y="0" width="12" height="512" fill="#2C3E50" opacity="0.8"/>
+  <!-- Reflections -->
+  <rect x="50" y="50" width="150" height="150" fill="#FFFFFF" opacity="0.2"/>
+  <rect x="300" y="300" width="100" height="100" fill="#FFFFFF" opacity="0.15"/>
+</svg>

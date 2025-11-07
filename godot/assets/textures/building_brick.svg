@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <!-- Building texture with brick pattern -->
+  <defs>
+    <pattern id="bricks" x="0" y="0" width="60" height="30" patternUnits="userSpaceOnUse">
+      <!-- Mortar -->
+      <rect width="60" height="30" fill="#8B8B8B"/>
+      <!-- Bricks -->
+      <rect x="2" y="2" width="56" height="13" fill="#A0826D"/>
+      <rect x="2" y="17" width="26" height="11" fill="#9A7963"/>
+      <rect x="32" y="17" width="26" height="11" fill="#9A7963"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="url(#bricks)"/>
+</svg>

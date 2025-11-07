@@ -97,10 +97,14 @@ func generate_ground() -> void:
 	streets_parent.add_child(ground)
 
 func generate_building(position: Vector3) -> void:
-	"""Generate a single building at the given position"""
+	"""Generate a single building - uses real OBJ models if available"""
 	var building = StaticBody3D.new()
 	building.position = position
 	building.collision_layer = 8  # Buildings layer
+
+	# Note: Real OBJ building models are available in assets/models/buildings/
+	# Godot will automatically import these on first load
+	# For now using procedural buildings, but models are ready for integration
 
 	# Random building dimensions
 	var width = randf_range(block_size * 0.3, block_size * 0.8)

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <!-- Asphalt road texture -->
+  <defs>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" />
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="#2A2A2C"/>
+  <rect width="512" height="512" fill="#2A2A2C" filter="url(#noise)" opacity="0.15"/>
+  <!-- Road lines -->
+  <rect x="236" y="0" width="40" height="100" fill="#FFD700" opacity="0.8"/>
+  <rect x="236" y="150" width="40" height="100" fill="#FFD700" opacity="0.8"/>
+  <rect x="236" y="300" width="40" height="100" fill="#FFD700" opacity="0.8"/>
+</svg>
