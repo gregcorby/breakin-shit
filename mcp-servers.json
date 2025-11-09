@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "zapper": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.zapper.xyz"
+      ],
+      "env": {
+        "ZAPPER_API_KEY": "adfc2303-ad0d-4691-a090-6a10da47c126"
+      }
+    }
+  }
+}
