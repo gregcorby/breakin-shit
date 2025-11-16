@@ -1,0 +1,47 @@
+{
+  "output": {
+    "filePath": "repomix-output.xml",
+    "style": "xml",
+    "removeComments": false,
+    "showLineNumbers": true,
+    "topFilesLength": 5,
+    "includeEmptyDirectories": false
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.json",
+    "**/*.md"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "dist/**",
+      "build/**",
+      "out/**",
+      "node_modules/**",
+      "coverage/**",
+      ".next/**",
+      ".cache/**",
+      "*.log",
+      "*.lock",
+      "package-lock.json",
+      "yarn.lock",
+      ".env*",
+      ".claude/hooks/**",
+      "repomix-output.xml"
+    ]
+  },
+  "security": {
+    "enableSecurityCheck": true
+  },
+  "tokenCount": {
+    "enabled": true
+  },
+  "compression": {
+    "enabled": true
+  }
+}

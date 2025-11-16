@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "name": "API Integration Skill",
+      "triggers": ["API", "endpoint", "route", "REST", "fetch", "axios", "request"],
+      "skill": "api-integration",
+      "priority": "high",
+      "message": "🌐 Activating API Integration skill - enforcing real API usage"
+    },
+    {
+      "name": "Frontend Development Skill",
+      "triggers": ["component", "React", "Vue", "frontend", "UI", "interface"],
+      "skill": "frontend-dev",
+      "priority": "medium",
+      "message": "🎨 Activating Frontend Development skill"
+    },
+    {
+      "name": "Test Validator Skill",
+      "triggers": ["test", "spec", "jest", "vitest", "testing", "assert", "expect"],
+      "skill": "test-validator",
+      "priority": "high",
+      "message": "🧪 Activating Test Validator skill - preventing fake tests"
+    }
+  ],
+  "settings": {
+    "autoActivate": true,
+    "showActivationMessages": true,
+    "requireManualOverride": false
+  }
+}
