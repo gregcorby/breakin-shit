@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider, Wallet, formatEther, parseUnits } from "ethers";
+import { Contract, JsonRpcProvider, Wallet, formatEther } from "ethers";
 import { ConsolidationPlan, TransferStep } from "./types.js";
 
 const ERC20_ABI = [
@@ -37,7 +37,6 @@ export async function executePlan(
       // If a gas-funding step fails, skip dependent token sweeps from that wallet
       if (step.type === "fund-gas") {
         const targetAddr = step.to.address;
-        // Find and skip subsequent token sweeps from the wallet we failed to fund
         while (
           i + 1 < plan.steps.length &&
           plan.steps[i + 1].type === "sweep-token" &&
@@ -54,15 +53,24 @@ export async function executePlan(
   return { succeeded, failed, txHashes };
 }
 
-async function executeStep(step: TransferStep, provider: JsonRpcProvider): Promise<string> {
+async function executeStep(
+  step: TransferStep,
+  provider: JsonRpcProvider
+): Promise<string> {
   const signer = new Wallet(step.from.privateKey, provider);
 
   if (step.type === "fund-gas" || step.type === "sweep-eth") {
-    return await sendEth(signer, step.to.address, step.amount, provider);
+    return await sendEth(signer, step.to.address, step.amount, step.type === "sweep-eth", provider);
   }
 
   if (step.type === "sweep-token" && step.token) {
-    return await sendToken(signer, step.to.address, step.token.contractAddress, step.token.balance, provider);
+    return await sendToken(
+      signer,
+      step.to.address,
+      step.token.contractAddress,
+      step.token.balance,
+      provider
+    );
   }
 
   throw new Error(`Unknown step type: ${step.type}`);
@@ -72,24 +80,25 @@ async function sendEth(
   signer: Wallet,
   to: string,
   amount: bigint,
+  isSweep: boolean,
   provider: JsonRpcProvider
 ): Promise<string> {
-  // For sweep-eth, recalculate to send max minus gas at current prices
   const feeData = await provider.getFeeData();
   const gasPrice = feeData.gasPrice ?? feeData.maxFeePerGas ?? 0n;
-
-  // Check actual balance at execution time
   const balance = await provider.getBalance(signer.address);
   const gasCost = 21000n * gasPrice;
 
-  // Use the smaller of planned amount vs (actual balance - gas)
-  let sendAmount = amount;
+  // For sweeps, send everything minus gas
+  let sendAmount = isSweep ? balance - gasCost : amount;
+
   if (sendAmount + gasCost > balance) {
     sendAmount = balance - gasCost;
   }
 
   if (sendAmount <= 0n) {
-    throw new Error(`Insufficient balance for transfer. Balance: ${formatEther(balance)}, gas cost: ${formatEther(gasCost)}`);
+    throw new Error(
+      `Insufficient balance. Have: ${formatEther(balance)}, gas: ${formatEther(gasCost)}`
+    );
   }
 
   const tx = await signer.sendTransaction({
@@ -123,7 +132,19 @@ async function sendToken(
     throw new Error("Token balance is 0");
   }
 
-  const tx = await contract.transfer(to, sendAmount);
+  // Estimate gas at execution time for the actual transfer to the real recipient
+  let gasLimit: bigint;
+  try {
+    const estimated = await contract.transfer.estimateGas(to, sendAmount);
+    // 20% buffer on top of the real estimate
+    gasLimit = (estimated * 120n) / 100n;
+  } catch (err) {
+    throw new Error(
+      `Gas estimation failed for token at ${tokenAddress}: ${(err as Error).message}`
+    );
+  }
+
+  const tx = await contract.transfer(to, sendAmount, { gasLimit });
   const receipt = await tx.wait();
   if (!receipt || receipt.status === 0) {
     throw new Error(`Token transfer reverted: ${tx.hash}`);

@@ -1,19 +1,16 @@
 import { formatEther } from "ethers";
 import { Config, ConsolidationPlan, TransferStep, WalletInfo } from "./types.js";
 
-/** Gas units for a basic ETH transfer */
+/** Gas units for a basic ETH transfer (always exactly 21000) */
 const ETH_TRANSFER_GAS = 21000n;
-/** Gas units for an ERC-20 transfer (conservative estimate) */
-const ERC20_TRANSFER_GAS = 65000n;
 
 /**
- * Builds an optimal consolidation plan:
+ * Builds an optimal consolidation plan using real gas estimates from the scanner.
  *
- * 1. Identify the destination wallet
- * 2. For each non-destination wallet with tokens but insufficient ETH for gas,
- *    schedule a "fund-gas" step from the richest ETH wallet
- * 3. Schedule token sweeps from every wallet to destination
- * 4. Schedule ETH sweeps from every wallet to destination (minus gas)
+ * 1. For each non-destination wallet with tokens but insufficient ETH for gas,
+ *    schedule a "fund-gas" step from the richest ETH wallet.
+ * 2. Schedule token sweeps from every wallet to destination.
+ * 3. Schedule ETH sweeps from every wallet to destination (minus gas).
  *
  * The ordering ensures gas-funding happens before token sweeps, and ETH sweeps
  * happen last (since ETH is consumed as gas in earlier steps).
@@ -25,11 +22,11 @@ export function buildConsolidationPlan(
   config: Config
 ): ConsolidationPlan {
   const dest = wallets[destinationIndex];
-  const effectiveGasPrice = (gasPrice * BigInt(Math.round(config.gasPriceMultiplier * 100))) / 100n;
+  const effectiveGasPrice =
+    (gasPrice * BigInt(Math.round(config.gasPriceMultiplier * 100))) / 100n;
   const steps: TransferStep[] = [];
 
   const ethGasCost = ETH_TRANSFER_GAS * effectiveGasPrice;
-  const tokenGasCost = ERC20_TRANSFER_GAS * effectiveGasPrice;
 
   // Track mutable ETH balances as we plan steps
   const balances = new Map<string, bigint>();
@@ -45,11 +42,16 @@ export function buildConsolidationPlan(
   for (const w of sourceWallets) {
     if (w.tokens.length === 0) continue;
 
-    const totalTokenGas = tokenGasCost * BigInt(w.tokens.length);
+    // Sum the real estimated gas cost for all token transfers from this wallet
+    let totalTokenGasCost = 0n;
+    for (const token of w.tokens) {
+      totalTokenGasCost += token.estimatedTransferGas * effectiveGasPrice;
+    }
+
     const currentBal = balances.get(w.address)!;
 
-    if (currentBal < totalTokenGas) {
-      const deficit = totalTokenGas - currentBal;
+    if (currentBal < totalTokenGasCost) {
+      const deficit = totalTokenGasCost - currentBal;
       gasFundingNeeded.push({ wallet: w, needed: deficit });
     }
   }
@@ -57,12 +59,15 @@ export function buildConsolidationPlan(
   // Sort by how much gas they need (smallest first for efficiency)
   gasFundingNeeded.sort((a, b) => (a.needed < b.needed ? -1 : 1));
 
-  // Find the best gas funder: the wallet with the most ETH
-  // Prefer the destination wallet as funder since it will receive everything anyway
   for (const { wallet: recipient, needed } of gasFundingNeeded) {
-    // Pick funder: wallet with highest balance that can cover the cost
-    const fundAmount = needed + ethGasCost; // need to fund the deficit + the cost of the funding tx itself is paid by funder
-    const funder = pickBestFunder(wallets, balances, fundAmount + ethGasCost, recipient.address);
+    // Funder pays: the deficit amount + the ETH transfer gas to send it
+    const fundAmount = needed + ethGasCost;
+    const funder = pickBestFunder(
+      wallets,
+      balances,
+      fundAmount + ethGasCost,
+      recipient.address
+    );
 
     if (!funder) {
       // No single wallet can fund this; skip these tokens (user will be warned)
@@ -78,14 +83,21 @@ export function buildConsolidationPlan(
       description: `Send ${formatEther(needed)} ETH from wallet [${funder.index}] to wallet [${recipient.index}] for token transfer gas`,
     });
 
-    // Update tracked balances
-    balances.set(funder.address, balances.get(funder.address)! - needed - ethGasCost);
-    balances.set(recipient.address, balances.get(recipient.address)! + needed);
+    balances.set(
+      funder.address,
+      balances.get(funder.address)! - needed - ethGasCost
+    );
+    balances.set(
+      recipient.address,
+      balances.get(recipient.address)! + needed
+    );
   }
 
-  // --- Phase 2: Sweep tokens ---
+  // --- Phase 2: Sweep tokens (using real per-token gas estimates) ---
   for (const w of sourceWallets) {
     for (const token of w.tokens) {
+      const tokenGasCost = token.estimatedTransferGas * effectiveGasPrice;
+
       steps.push({
         type: "sweep-token",
         from: w,
@@ -93,7 +105,7 @@ export function buildConsolidationPlan(
         token,
         amount: token.balance,
         estimatedGasCost: tokenGasCost,
-        description: `Sweep ${token.symbol} from wallet [${w.index}] to destination`,
+        description: `Sweep ${token.symbol} from wallet [${w.index}] to destination (est. gas: ${token.estimatedTransferGas} units)`,
       });
 
       balances.set(w.address, balances.get(w.address)! - tokenGasCost);
@@ -106,7 +118,7 @@ export function buildConsolidationPlan(
     const sweepAmount = remaining - ethGasCost;
 
     if (sweepAmount <= config.dustThreshold) {
-      continue; // Not worth sweeping dust
+      continue;
     }
 
     steps.push({
@@ -123,28 +135,38 @@ export function buildConsolidationPlan(
   }
 
   // Summarize tokens
-  const tokenTotals = new Map<string, { total: bigint; decimals: number }>();
+  const tokenTotals = new Map<
+    string,
+    { total: bigint; decimals: number }
+  >();
   for (const w of sourceWallets) {
     for (const t of w.tokens) {
-      const existing = tokenTotals.get(t.symbol) || { total: 0n, decimals: t.decimals };
+      const existing = tokenTotals.get(t.symbol) || {
+        total: 0n,
+        decimals: t.decimals,
+      };
       existing.total += t.balance;
       tokenTotals.set(t.symbol, existing);
     }
   }
 
   const totalGas = steps.reduce((sum, s) => sum + s.estimatedGasCost, 0n);
-  const totalEth = steps.filter((s) => s.type === "sweep-eth").reduce((sum, s) => sum + s.amount, 0n);
+  const totalEth = steps
+    .filter((s) => s.type === "sweep-eth")
+    .reduce((sum, s) => sum + s.amount, 0n);
 
   return {
     destination: dest,
     steps,
     totalGasEstimate: totalGas,
     totalEthToConsolidate: totalEth,
-    tokensToConsolidate: Array.from(tokenTotals.entries()).map(([symbol, v]) => ({
-      symbol,
-      total: v.total,
-      decimals: v.decimals,
-    })),
+    tokensToConsolidate: Array.from(tokenTotals.entries()).map(
+      ([symbol, v]) => ({
+        symbol,
+        total: v.total,
+        decimals: v.decimals,
+      })
+    ),
   };
 }
 
@@ -171,10 +193,14 @@ function pickBestFunder(
 
 export function formatPlan(plan: ConsolidationPlan): string {
   const lines: string[] = [];
-  lines.push(`Destination: [${plan.destination.index}] ${plan.destination.address}`);
+  lines.push(
+    `Destination: [${plan.destination.index}] ${plan.destination.address}`
+  );
   lines.push(`Total steps: ${plan.steps.length}`);
   lines.push(`Estimated total gas: ${formatEther(plan.totalGasEstimate)} ETH`);
-  lines.push(`ETH to consolidate: ${formatEther(plan.totalEthToConsolidate)} ETH`);
+  lines.push(
+    `ETH to consolidate: ${formatEther(plan.totalEthToConsolidate)} ETH`
+  );
 
   if (plan.tokensToConsolidate.length > 0) {
     lines.push(`Tokens to consolidate:`);
@@ -190,8 +216,14 @@ export function formatPlan(plan: ConsolidationPlan): string {
   for (let i = 0; i < plan.steps.length; i++) {
     const step = plan.steps[i];
     const phase =
-      step.type === "fund-gas" ? "GAS-FUND" : step.type === "sweep-token" ? "TOKEN" : "ETH";
-    lines.push(`  ${i + 1}. [${phase}] ${step.description}`);
+      step.type === "fund-gas"
+        ? "GAS-FUND"
+        : step.type === "sweep-token"
+          ? "TOKEN"
+          : "ETH";
+    lines.push(
+      `  ${i + 1}. [${phase}] ${step.description} (~${formatEther(step.estimatedGasCost)} ETH gas)`
+    );
   }
 
   return lines.join("\n");

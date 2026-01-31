@@ -14,6 +14,8 @@ export interface TokenBalance {
   symbol: string;
   decimals: number;
   balance: bigint;
+  /** Gas units estimated via eth_estimateGas for this specific transfer */
+  estimatedTransferGas: bigint;
 }
 
 export interface TransferStep {
@@ -39,9 +41,7 @@ export interface ConsolidationPlan {
 
 export interface Config {
   rpcUrl: string;
-  /** Common ERC-20 token contracts to scan */
-  tokenList: { address: string; symbol: string; decimals: number }[];
-  /** Gas price multiplier for safety margin (e.g. 1.2 = 20% buffer) */
+  /** Gas price multiplier for safety margin (e.g. 1.25 = 25% buffer) */
   gasPriceMultiplier: number;
   /** Minimum ETH balance (wei) to bother sweeping */
   dustThreshold: bigint;

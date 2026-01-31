@@ -8,7 +8,7 @@ import { executePlan } from "./executor.js";
 import { Config } from "./types.js";
 
 // ---------------------------------------------------------------------------
-// Minimal CLI helpers (no heavy deps needed)
+// Minimal CLI helpers
 // ---------------------------------------------------------------------------
 const rl = readline.createInterface({ input: stdin, output: stdout });
 const ask = (q: string): Promise<string> =>
@@ -31,8 +31,10 @@ async function main() {
   header("ETH Wallet Consolidator");
 
   // --- RPC URL ---
+  log("For best token discovery, use an Alchemy RPC URL.");
+  log("Etherscan-based discovery is used as fallback on supported chains.\n");
   const customRpc = await ask(
-    `RPC URL (press Enter for default: ${DEFAULT_CONFIG.rpcUrl}): `
+    `RPC URL (Enter for default: ${DEFAULT_CONFIG.rpcUrl}): `
   );
   const config: Config = {
     ...DEFAULT_CONFIG,
@@ -53,8 +55,8 @@ async function main() {
 
   // --- Collect private keys ---
   header("Enter Private Keys");
-  log("Paste private keys one per line. Enter a blank line when done.");
-  log("Keys are NEVER stored to disk — they exist only in memory.\n");
+  log("Paste private keys one per line. Blank line when done.");
+  log("Keys are NEVER stored to disk.\n");
 
   const privateKeys: string[] = [];
   let keyNum = 1;
@@ -62,7 +64,6 @@ async function main() {
     const key = await ask(`  Key #${keyNum}: `);
     if (!key) break;
 
-    // Validate
     try {
       const w = new Wallet(key);
       log(`    -> ${w.address}`);
@@ -81,9 +82,12 @@ async function main() {
 
   // --- Scan wallets ---
   header("Scanning Wallets");
-  log("Fetching ETH and token balances...\n");
+  log("Fetching ETH balances and auto-discovering tokens...\n");
 
-  const wallets = await scanWallets(privateKeys, provider, config);
+  const wallets = await scanWallets(privateKeys, provider, config, (msg) =>
+    log(msg)
+  );
+  log("");
   log(formatWalletSummary(wallets));
 
   const nonEmpty = wallets.filter(
@@ -105,7 +109,9 @@ async function main() {
 
   let destIndex = -1;
   while (destIndex < 0 || destIndex >= wallets.length) {
-    const ans = await ask(`Destination wallet index [0-${wallets.length - 1}]: `);
+    const ans = await ask(
+      `Destination wallet index [0-${wallets.length - 1}]: `
+    );
     destIndex = parseInt(ans, 10);
     if (isNaN(destIndex)) destIndex = -1;
   }
@@ -115,12 +121,16 @@ async function main() {
 
   const feeData = await provider.getFeeData();
   const gasPrice = feeData.gasPrice ?? feeData.maxFeePerGas ?? 0n;
-  log(`Current gas price: ${formatEther(gasPrice * 1000000n)} Gwei (approx)\n`);
+  log(
+    `Current gas price: ${formatEther(gasPrice * 1000000n)} Gwei (approx)\n`
+  );
 
   const plan = buildConsolidationPlan(wallets, destIndex, gasPrice, config);
 
   if (plan.steps.length === 0) {
-    log("No transfers needed — destination already has all funds, or balances are below dust threshold.");
+    log(
+      "No transfers needed — destination already has all funds, or balances are below dust threshold."
+    );
     rl.close();
     process.exit(0);
   }
