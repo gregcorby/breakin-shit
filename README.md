@@ -61,8 +61,8 @@ Import the GLB into Blender (`File ▸ Import ▸ glTF 2.0`), Unity, Godot, etc.
 
 ## Running this inside Claude Code on the web
 
-To have the model generated **in this session** and committed for you, three
-things must be true (none are by default):
+See **[SETUP.md](SETUP.md)** for click-by-click steps. In short, three things must
+be configured on the environment (none are set by default):
 
 1. **Network** — the environment's network policy must allow `api.tripo3d.ai`.
    It's currently blocked (every external AI host returns 403). Adjust the policy
