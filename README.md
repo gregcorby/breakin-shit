@@ -1,93 +1,75 @@
-# Humanoid Unit-07 — 3D Model
+# Humanoid Unit-07 — image → 3D model
 
-> *"That's it. Now go make me beautiful in 3D. (And maybe give me a coffee.)"*
-> — Unit-07
+Turn the **HUMANOID UNIT-07** reference sheet into a real, textured 3D mesh using
+the [Tripo3D](https://platform.tripo3d.ai) image-to-3D API.
 
-A procedurally generated 3D model of **HUMANOID UNIT-07**, reconstructed from the
-reference sheet. The whole thing is built in pure Python (no dependencies) and
-exported as a standard **Wavefront `.OBJ` + `.MTL`** you can drop straight into
-Blender, Unity, Godot, three.js, or any DCC tool.
+The reference is a 5-view turnaround (front / 3⁄4 front / side / 3⁄4 back / back),
+which is ideal input: we split it into clean per-view images and feed Tripo's
+**multiview** mode for a faithful result, then download GLB (+ optional OBJ/FBX).
 
-![Unit-07 front](preview_front.png)
-![Unit-07 three-quarter](preview_34.png)
+> **Why an API and not local generation?** Faithfully reconstructing detailed
+> concept art needs a real image-to-3D model. That requires a GPU and model
+> weights; doing it well on CPU isn't feasible. Tripo runs the heavy model
+> server-side and returns a textured mesh.
 
-## Spec (from the reference sheet)
-
-| Field          | Value                |
-|----------------|----------------------|
-| Model          | 07                   |
-| Height         | 6'2" (187.9 cm)      |
-| Weight         | 72 kg                |
-| Vibes          | Tired                |
-| Job            | Exist                |
-| AI Type        | Overthinker          |
-| Primary color  | Gunmetal gray        |
-
-**Don't forget the important stuff:** ✅ cables (neck go brrr) · ✅ round joints ·
-✅ fingers (5 of them) · ✅ existential dread · ✅ silent judgment.
-
-## What's modelled
-
-- **Ovoid head** with an inset dark face panel and two glowing cyan eyes
-- **Headphone "ear" cans** with cyan accent rings (round joints, of course)
-- **Neck cable bundle** running into the upper back
-- **Chest** with a glowing cyan reactor core + accent ring
-- **Segmented abdomen** (three tapering ab plates with dark gaps) and pelvis
-- **Ball joints** at every shoulder, elbow, wrist, hip, knee, and ankle
-- **Hands** with a palm, four 3-segment fingers, and an angled thumb (5 total)
-- **Wedge feet** pointing forward
-
-Model is built to scale: **~1.88 m tall**, feet on the floor at `y = 0`, facing `+Z`,
-units in **metres**.
-
-## Color palette (matches the sheet)
-
-| Material      | Use                                  |
-|---------------|--------------------------------------|
-| `body_light`  | Main armor panels (light gray)       |
-| `body_mid`    | Secondary panels / limbs (mid gray)  |
-| `body_dark`   | Joints, recesses, face panel (near-black) |
-| `accent_cyan` | Cables, rings, trim                  |
-| `core_glow`   | Emissive chest reactor               |
-| `eye_glow`    | Emissive eyes                        |
-
-`core_glow`, `eye_glow`, and `accent_cyan` carry an emissive (`Ke`) value, so the
-eyes and chest core glow in any renderer that reads MTL emission (e.g. Blender's
-OBJ importer).
-
-## Files
+## Pipeline
 
 ```
-generate_unit07.py   # the generator (stdlib only)
-render_preview.py    # tiny pure-Python rasterizer for the preview PNGs
-model/unit07.obj     # the model  (~16k verts / ~27k tris)
-model/unit07.mtl     # the materials
-preview_*.png        # front / three-quarter / side previews
+reference/unit07_sheet.png          # <- you drop the reference image here
+        │
+        ▼  pipeline/prep_views.py    # split turnaround -> clean per-view PNGs
+reference/views/{front,side,back}.png
+        │
+        ▼  pipeline/tripo_image_to_3d.py   # upload -> generate -> download
+model/unit07.glb  (+ unit07.obj / unit07.fbx)
 ```
 
-## Usage
-
-Regenerate the model:
+## Setup
 
 ```bash
-python3 generate_unit07.py        # writes model/unit07.obj + model/unit07.mtl
+pip install -r requirements.txt
+export TRIPO_API_KEY=tcli_xxxxxxxx        # from platform.tripo3d.ai -> API keys
 ```
 
-Re-render the previews:
+## Run
 
 ```bash
-python3 render_preview.py         # writes preview_front/34/side.png
+# 1. split the sheet into front/side/back views
+python3 pipeline/prep_views.py reference/unit07_sheet.png
+
+# 2. generate the mesh from the multiview images (best fidelity)
+python3 pipeline/tripo_image_to_3d.py \
+    --front reference/views/front.png \
+    --left  reference/views/side.png \
+    --back  reference/views/back.png \
+    --also obj,fbx
+
+# ...or just from a single clean image:
+python3 pipeline/tripo_image_to_3d.py reference/views/front.png --also obj
 ```
 
-### Import into Blender
+Output lands in `model/` (`unit07.glb` is textured/PBR; OBJ/FBX via `--also`).
+Import the GLB into Blender (`File ▸ Import ▸ glTF 2.0`), Unity, Godot, etc.
 
-`File ▸ Import ▸ Wavefront (.obj)` → pick `model/unit07.obj`. The `.mtl` is loaded
-automatically (keep the two files together). The model arrives Y-up, in metres,
-standing on the floor.
+### Options
 
-## Tweaking Unit-07
+- `--model-version v2.5-20250123` — pin a Tripo model version
+- `--no-texture` / `--no-pbr` — geometry-only / no PBR maps
+- `prep_views.py --band TOP BOTTOM` — adjust which rows are treated as the
+  turnaround (fractions of image height) if auto-detection grabs the wrong band
+- `prep_views.py --thresh N` — background brightness cutoff (0–255)
 
-`generate_unit07.py` is fully parametric — proportions live as named heights/widths
-at the top of `build()` (`y_shoulder`, `hip_x`, `y_knee`, …), and materials live in
-the `MATS` dict. Adjust those and re-run to reshape him. He will judge your changes
-silently.
+## Running this inside Claude Code on the web
+
+To have the model generated **in this session** and committed for you, three
+things must be true (none are by default):
+
+1. **Network** — the environment's network policy must allow `api.tripo3d.ai`.
+   It's currently blocked (every external AI host returns 403). Adjust the policy
+   for this environment: https://code.claude.com/docs/en/claude-code-on-the-web
+2. **API key** — add `TRIPO_API_KEY` as an environment secret.
+3. **Reference image** — commit the sheet to `reference/unit07_sheet.png`
+   (it lives in chat, not on disk).
+
+With those in place, the two commands above run end-to-end and the resulting
+`model/unit07.glb` is committed to this branch.
